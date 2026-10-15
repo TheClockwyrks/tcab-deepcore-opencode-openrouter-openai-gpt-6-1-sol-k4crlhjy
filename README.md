@@ -1,102 +1,86 @@
-# Deepcore — starter project
+# Deepcore
 
-This repository is the starting point for building **Deepcore**, the game the
-specification under `specs/` describes. Read `specs/overview.md` first; it says
-how the rest of the specification is organized.
+**Go deep. Come back. Build your way off the rock.**
 
-The project is already wired up. It builds on the **Simple 2D** engine, which is
-installed as an ordinary dependency and documents itself under `engine/` — read
-that alongside the specs. What is missing is the game.
+A complete browser mining expedition: drill through four geological bands, haul
+ore home on a weight-sensitive jetpack, and turn the proceeds into upgrades and
+an escape rocket. Find Resonite and Cryenite, extract an unstable Core Sample,
+and make the final climb before its ninety-second timer expires.
 
-## What you own
+Choose Standard or Hardcore, then a Quick, Standard, or Marathon mine. Standard
+lets you restore the last expedition saved at the surface Save Pad. Hardcore
+deletes that save when you die. Everything runs locally in the browser.
 
-**`src/game.ts`, and any new files you add beside it.**
+## Run
 
-`src/game.ts` declares and exports `DeepcoreState`, the whole authoritative state
-the specification's rules require of the game, and `DeepcoreDebugApi`, the debug
-and automation surface `specs/instrumentation.md` specifies. The seeded stub is
-written against both names, so the project does not compile until they exist — a
-fresh workspace failing `npm run typecheck` is the starting point, not a broken
-seed.
+Requires Node.js 22.12+ (or a compatible current Node release) and npm.
 
-`src/game.ts` then exports `game`, a `Game<DeepcoreState, DeepcoreDebugApi>`:
-three functions over that state. `initialize` builds the state and the debug
-surface once and returns them together as `[state, debug]`; `update` takes the
-current state as a read-only view (`DeepReadonly<DeepcoreState>`, from
-`ts-essentials`) and returns the next state, advanced against the frame's delta
-time in seconds; and `render` is handed that next state, read-only again, and
-draws it. The engine holds the state by value and replaces it with whatever
-`update` returns, so a frame builds the next state from the current one rather
-than writing into it, and the type is what guarantees that rendering changes
-nothing. All three currently throw `"not implemented"`. Implement them.
+```sh
+npm ci
+npm run dev
+```
 
-**The camera is yours.** This engine draws nothing and holds no camera: it hands
-`render` a 2D context covering the logical stage. The mine is far wider and far
-deeper than that stage, so the scroll over it is the game's own transform on that
-context, and `specs/world.md` states where the camera sits each frame.
+Open the Vite address printed in the terminal. To build the self-contained static
+site:
 
-The debug surface is a required deliverable. The engine returns it from
-`engine.debug` exactly as `initialize` handed it over, and that is how the game is
-driven from code, so it is present and exactly as `specs/instrumentation.md`
-specifies. Because nothing holds a writable state, its operations are written in
-the shape of `update`: a pose or a control takes the current state and returns the
-next, and a caller applies it through `engine.apply((s) => debug.setFuel(s, 40))`;
-a reading takes the state and returns what it read, as `debug.snapshot(engine.state)`.
-Nothing is published to the page.
+```sh
+npm run build
+npm run preview
+```
 
-**You also produce every asset the game plays.** Six asset-generation tools are on
-your `PATH` while you build here. `specs/assets.md` is the contract: what to
-produce, which tool produces it, the path it lands at, and how it is wired in.
-The finished files are committed to this repository and loaded through the
-engine's asset loader at runtime, and `npm run build` never invokes the tools.
+Publish the contents of `dist/`. It includes a root `index.html` and works at any
+static hosting base path; all bundled resources are relative. No backend, account,
+API key, or asset-generation program is needed to build or play.
 
-`@clockwyrks/particle-runtime` is already a dependency, vendored into this
-repository and resolved by a `file:` entry in `package.json`. It plays a produced
-`system.json` into a 2D drawing context. Import it like any other dependency.
+## Controls
 
-Tests you write belong beside your sources as `src/**/*.test.ts`. `npm test`
-runs them in process, with coverage over `src/`. The engine's documentation
-carries a complete worked example of testing a game this way.
+| Input | Action |
+| --- | --- |
+| A / D or Left / Right | Walk, drift, and drill into side walls |
+| S or Down | Drill downward while standing on solid ground |
+| W / Up / Space | Fire the jetpack |
+| E / Enter | Activate a camp building; confirm a menu choice |
+| I | Open or close inventory; drop ore to shed weight |
+| 1–6 | Use Dynamite, Plastic Explosives, Quantum Teleporter, Matter Transmitter, Nanobots, Emergency Fuel |
+| J | Jettison a carried Core Sample |
+| Escape / P | Close a panel, or pause / resume |
+| M | Mute / unmute all audio |
+| Backtick | Toggle the engine's read-only diagnostic overlay |
 
-## What you must not edit
+Menus, camp buildings, panel controls, and the status bar also support mouse,
+pen, and touch. Movement uses the keyboard. The in-game field manual explains the
+economy, hazards, saving, cargo weight, and escape objective.
 
-- **`src/main.ts`** — the fixed entry point. It creates the engine over the
-  page's canvas, binds `game` to it, and runs.
-- **`src/constants.ts`** — every figure the specification fixes: the stage and
-  grid geometry, the depth bands and what generation places, the ore table, the
-  movement, drill, fuel and hull rates, the hazard figures, the seven upgrade
-  ladders, the rocket components, the field supplies, the action names and their
-  keys, the cue names, and the screen copy. Read from it.
-- **`index.html`** — the page and the canvas the engine fits the stage into.
-- **The toolchain** — `package.json`, `tsconfig.json`, `vite.config.ts`,
-  `vitest.config.ts`, `eslint.config.js`, `.prettierrc.json`, `.prettierignore`,
-  and `.gitignore`.
-- **`.vendor/`** — the vendored engine and runtime libraries.
-- **`engine/`** — the engine's own documentation.
+**Plan the return trip:** fuel never refills by itself, materials weigh nothing,
+and a full cargo bay may be too heavy to lift. Sell at the Ore Market, then buy
+fuel and repairs. Save before a risky descent. No save can freeze a live Core Sample.
 
-Add dependencies to `package.json` if you genuinely need them, and commit the
-`package-lock.json` — the build is installed with `npm ci`. Leave the existing
-entries alone.
+## Checks and architecture
 
-## Commands
+```sh
+npm run typecheck
+npm run lint
+npm run format
+npm test
+```
 
-- `npm run dev` — serves the game with hot reload.
-- `npm run build` — type-checks, then emits the static site into `dist/`.
-- `npm run preview` — serves `dist/` for a final check.
-- `npm run typecheck` — `tsc --noEmit`.
-- `npm run lint` — ESLint.
-- `npm run format` — Prettier, in check mode.
-- `npm test` — Vitest over `src/**/*.test.ts`, with coverage.
+The Simple 2D engine owns input, timing, loading, audio, fitting, diagnostics, and
+recording. The game uses immutable frame transitions over a render-free 120 Hz
+simulation. Simulation rules, economy transactions, world generation, interface
+hit regions, and presentation live in separate modules under `src/`.
 
-## Before you finish
+`game.initialize` returns the full versioned debug surface beside the state; it is
+available through `engine.debug` and uses `engine.apply` for poses. Nothing is
+published on the game page. Tests drive a real engine with a scripted clock and
+an `@napi-rs/canvas` surface.
 
-- `npm run build` produces `dist/` with `index.html` at its root, and that
-  directory runs as-is on any static host, at any base path.
-- `npm run typecheck`, `npm run lint`, `npm run format`, and `npm test` all pass.
-  The same four commands are run over the repository you leave behind.
-- The assets `specs/assets.md` asks for are produced and committed under
-  `assets/`, and the game loads them.
-- The `showcase/` directory `specs/showcase.md` asks for is present.
-- **Replace this file** with the `README.md` `specs/overview.md` asks the
-  finished build to ship: what the game is, how to install it, how to run it in
-  development, how to produce the production build, and the controls.
+Original pixel art, animation, live particle systems, sound effects, and music
+are committed under `assets/`. `tools/generate-assets.py` records the one-time
+authoring recipe and requires the authoring tools only if deliberately rerun.
+The production build simply bundles the finished files.
+
+`showcase/` contains the player-facing description, screenshots, and a genuine
+engine draw-command replay. For capture tooling, run the dev server and then
+`node tools/capture.mjs`. After a production build,
+`node tools/verify-browser.mjs` checks the real bundle in Chromium from a nested
+hosting path, at high pixel density and multiple viewport sizes.
